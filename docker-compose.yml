@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  db:
+    container_name: sample-db
+    platform: linux/x86_64
+    image: mysql:8.0.27
+    ports:
+      - "3316:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql
+      MYSQL_DATABASE: db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    volumes:
+      - ./sql/init:/docker-entrypoint-initdb.d/
+    restart: always
+    networks:
+      - sample-api-network
+  api:
+    container_name: sample-api
+    build:
+      context: ./
+    tty: true
+    ports:
+      - 8080:8080
+    depends_on:
+      - db
+    environment:
+      MYSQL_DATABASE: db
+      MYSQL_ADDR: db
+      MYSQL_PORT: 3306
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    networks:
+      - sample-api-network
+
+networks:
+  sample-api-network:
+    driver: bridge
+    external: true
