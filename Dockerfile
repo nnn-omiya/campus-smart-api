@@ -1,4 +1,5 @@
-FROM golang:latest
+#BUILD
+FROM golang:latest AS build
 
 WORKDIR /app
 
@@ -6,13 +7,16 @@ COPY ./api .
 
 RUN go mod download
 
-RUN go install github.com/cosmtrek/air@latest
-
 RUN go build -o main .
+
+#DEPLOY
+
+FROM gcr.io/distroless/base-debian12:latest
+
+WORKDIR /
+
+COPY --from=build /app/main /main
 
 EXPOSE 8080
 
-COPY ./setting/startup.sh ./startup.sh
-
-RUN chmod 744 ./startup.sh
-CMD ["./startup.sh"]
+CMD ["/main"]
