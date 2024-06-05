@@ -10,43 +10,47 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
-	"github.com/gorilla/mux"
 
 	"github.com/nnn-omiya/campus-smart-api/routes"
 )
 
-func main() {
-	jst, err := time.LoadLocation("Asia/Tokyo")
-	if err != nil {
-		log.Fatal(err)
-	}
-	c := mysql.Config{
+type Config struct {
+	DBName string
+	User   string
+	Passwd string
+	Addr   string
+	Port   string
+}
+
+func NewConfig() (*Config, error) {
+	return &Config{
 		DBName: os.Getenv("MYSQL_DATABASE"),
 		User:   os.Getenv("MYSQL_USER"),
 		Passwd: os.Getenv("MYSQL_PASSWORD"),
-		Addr:   fmt.Sprintf("%s:%s", os.Getenv("MYSQL_ADDR"), os.Getenv("MYSQL_PORT")),
-		// Addr:      fmt.Sprintf("%s:%s", os.Getenv("MYSQL_ADDR"), "3316"),
-		Net:       "tcp",
-		ParseTime: true,
-		Loc:       jst,
-	}
+		Addr:   os.Getenv("MYSQL_ADDR"),
+		Port:   os.Getenv("MYSQL_PORT"),
+	}, nil
+}
 
+func connectDB(c *mysql.Config) (*sql.DB, error) {
 	MaxDBRetryCount := 10
 	SleepTime := 5 * time.Second
 
-	db, err := sql.Open("mysql", c.FormatDSN())
+	var db *sql.DB
+	var err error
+
 	for r := 1; r <= MaxDBRetryCount; r++ {
-		fmt.Println("NewDB Connection Attempt #" + strconv.Itoa(r))
+		log.Println("NewDB Connection Attempt #" + strconv.Itoa(r))
 		db, err = sql.Open("mysql", c.FormatDSN())
 		if err != nil {
-			fmt.Println("NewDB Connection Error:" + err.Error())
+			log.Println("NewDB Connection Error:" + err.Error())
 			time.Sleep(SleepTime)
 			continue
 		}
 
 		err = db.Ping()
 		if err != nil {
-			fmt.Println("NewDB Connection Error:" + err.Error())
+			log.Println("NewDB Connection Error:" + err.Error())
 			time.Sleep(SleepTime)
 			continue
 		} else {
@@ -55,29 +59,43 @@ func main() {
 	}
 
 	if err != nil {
-		fmt.Println("NewDB Connection Failed")
+		log.Println("NewDB Connection Failed")
+		return nil, err
+	}
+
+	return db, nil
+}
+
+func main() {
+	jst, err := time.LoadLocation("Asia/Tokyo")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	config, err := NewConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c := mysql.Config{
+		DBName:    config.DBName,
+		User:      config.User,
+		Passwd:    config.Passwd,
+		Addr:      fmt.Sprintf("%s:%s", config.Addr, config.Port),
+		Net:       "tcp",
+		ParseTime: true,
+		Loc:       jst,
+	}
+
+	db, err := connectDB(&c)
+	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	router := mux.NewRouter()
-	routes.Router(db, router)
+	http.HandleFunc("/", routes.Router(db))
 
 	port := "8080"
-	fmt.Printf("Server is running on port %s...\n", port)
-	log.Fatal(http.ListenAndServe(":"+port, router))
-
-	// t := time.NewTicker(5 * time.Minute)
-	// defer func() {
-	// 		fmt.Println("Stopping ticker...")
-	// 		t.Stop()
-	// }()
-
-	// for {
-	// 		select {
-	// 		case now := <-t.C:
-	// 				fmt.Println(now.Format(time.RFC3339))
-	// 		}
-	// }
-
+	log.Printf("Server is running on port %s...\n", port)
+	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

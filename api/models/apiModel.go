@@ -64,10 +64,11 @@ func (m *ApiModel) GetControllerAddress() ([]AddressList, error) {
 	// }
 
 	var addressList []AddressList
-	// for _, v := range aliveList {
 	for _, v := range DeviceList {
 		var address string
-		err := m.DB.QueryRow("SELECT address FROM device_address_records WHERE device_id = ? ORDER BY id DESC", v).Scan(&address)
+		var deviceID int
+		var deviceType int
+		err := m.DB.QueryRow("SELECT address, device_id FROM device_address_records WHERE device_id = ? ORDER BY id DESC", v).Scan(&address, &deviceID)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				name, _ := lib.GetDeviceName(m.DB, v)
@@ -76,7 +77,12 @@ func (m *ApiModel) GetControllerAddress() ([]AddressList, error) {
 			}
 			return nil, err
 		} else {
-			addressList = append(addressList, AddressList{Address: address, Id: 1})
+			// deviceIDに対応するdevice_typeを取得
+			err = m.DB.QueryRow("SELECT device_type FROM devices_controller WHERE id = ?", deviceID).Scan(&deviceType)
+			if err != nil {
+				return nil, err
+			}
+			addressList = append(addressList, AddressList{Address: address, Id: deviceType})
 		}
 	}
 	if len(addressList) == 0 {
@@ -90,7 +96,6 @@ func (m *ApiModel) PostControlLog(log DeviceControl) ([]int, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("aaa")
 	var rowList []int
 	for _, v := range DeviceList {
 		fmt.Println(v)

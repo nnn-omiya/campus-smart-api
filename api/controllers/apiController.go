@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/nnn-omiya/campus-smart-api/lib"
@@ -16,7 +18,7 @@ type ApiController struct {
 
 type URLResponse struct {
 	URL      string
-	Response *http.Response
+	Response string
 }
 
 func NewApiController(db *sql.DB) *ApiController {
@@ -65,7 +67,15 @@ func (h *ApiController) PostControlDevice(w http.ResponseWriter, r *http.Request
 			continue
 		}
 
-		urlResponse := URLResponse{URL: url, Response: resp}
+		urlResponse := URLResponse{
+			URL: url,
+			Response: func() string {
+				bodyBytes, err := ioutil.ReadAll(resp.Body)
+				if err != nil {
+					log.Fatal(err)
+				}
+				return string(bodyBytes)
+			}()}
 		urlResponses = append(urlResponses, urlResponse)
 
 		resp.Body.Close()
