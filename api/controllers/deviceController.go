@@ -18,14 +18,14 @@ func NewDeviceController(db *sql.DB) *DeviceController {
 	return &DeviceController{Model: m}
 }
 
-func (h *DeviceController) PostCreateDevice(w http.ResponseWriter, r *http.Request) {
-	createDevice, err := lib.AccessLogHandler[models.CreateDevice](r)
+func (h *DeviceController) PostCreateController(w http.ResponseWriter, r *http.Request) {
+	createDevice, err := lib.AccessLogHandler[models.CreateController](r)
 	if err != nil {
 		lib.ErrorHandler(w, err, http.StatusBadRequest)
 		return
 	}
 
-	id, err := h.Model.CreateDevices(*createDevice)
+	id, err := h.Model.CreateController(*createDevice)
 	if err != nil {
 		lib.ErrorHandler(w, err, http.StatusInternalServerError)
 		return

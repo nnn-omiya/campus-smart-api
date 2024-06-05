@@ -15,7 +15,7 @@ func Router(db *sql.DB, router *mux.Router) {
 func deviceRouter(db *sql.DB, router *mux.Router) {
 	deviceHandler := controllers.NewDeviceController(db)
 
-	router.HandleFunc("/device/create", deviceHandler.PostCreateDevice).Methods("POST")
+	router.HandleFunc("/device/create_controller", deviceHandler.PostCreateController).Methods("POST")
 	router.HandleFunc("/device/login", deviceHandler.PostLoginDevice).Methods("POST")
 	router.HandleFunc("/device/status", deviceHandler.PostDeviceStatus).Methods("POST")
 	router.HandleFunc("/device/error", deviceHandler.PostDeviceError).Methods("POST")

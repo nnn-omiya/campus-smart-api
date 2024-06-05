@@ -10,9 +10,9 @@ type DeviceModel struct {
 	DB *sql.DB
 }
 
-type CreateDevice struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
+type CreateController struct {
+	Addr string `json:"address"`
+	Type int    `json:"type"`
 }
 
 type DeviceAddress struct {
@@ -35,13 +35,23 @@ func NewDeviceModel(DB *sql.DB) *DeviceModel {
 	return &DeviceModel{DB: DB}
 }
 
-func (m *DeviceModel) CreateDevices(device CreateDevice) (int, error) {
-	result, err := m.DB.Exec("INSERT INTO devices (name, type) VALUES (?, ?)", device.Name, device.Type)
+func (m *DeviceModel) CreateController(device CreateController) (int, error) {
+	result, err := m.DB.Exec("INSERT INTO devices (mac_address, device_type) VALUES (?, ?)", device.Addr, "controller")
 	if err != nil {
 		return 0, err
 	}
 
 	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	result, err = m.DB.Exec("INSERT INTO devices_controller (device_id, device_type) VALUES (?, ?)", id, device.Type)
+	if err != nil {
+		return 0, err
+	}
+
+	id, err = result.LastInsertId()
 	if err != nil {
 		return 0, err
 	}
